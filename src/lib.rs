@@ -11,25 +11,25 @@ pub enum ErrorDecode {
     Version,
 }
 pub fn read_file(data: Vec<u8>) -> Result<(), ErrorDecode> {
-    if data.len() < 12 {
+    if data.len() < 16 {
         return Err(ErrorDecode::LayoutBroken);
     }
-    if data[0..8] != *b"NotAFood" {
+    if data[0..12] != *b"rrtkstrmbldr" {
         return Err(ErrorDecode::MagicNumbers);
     }
-    let major = data[8];
+    let major = data[12];
     if major > MAJOR {
         return Err(ErrorDecode::Version);
     }
-    let minor = data[9];
+    let minor = data[13];
     if minor > MINOR {
         return Err(ErrorDecode::Version);
     }
-    let patch = data[10];
+    let patch = data[14];
     if patch > PATCH {
         return Err(ErrorDecode::Version);
     }
-    let pre = data[11];
+    let pre = data[15];
     if pre > PRE {
         return Err(ErrorDecode::Version);
     }
