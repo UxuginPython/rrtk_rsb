@@ -8,12 +8,20 @@ pub mod tags {
     pub const IGNORE_NEXT: u8 = unsafe { core::mem::transmute(i8::MIN) };
     pub const NODES_START: u8 = unsafe { core::mem::transmute(1i8) };
     pub const NODES_END: u8 = unsafe { core::mem::transmute(-1i8) };
+    pub const NODE_START: u8 = unsafe { core::mem::transmute(2i8) };
+    pub const NODE_END: u8 = unsafe { core::mem::transmute(-2i8) };
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorDecode {
     LayoutBroken,
     MagicNumbers,
     Version,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct Node {
+    pub x: f64,
+    pub y: f64,
+    pub inputs: Vec<u16>,
 }
 fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
     let mut skip_next = false;
@@ -48,6 +56,37 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
         }
     }
     sections
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ErrorParseNode;
+pub fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
+    if data.len() < 16 || data.len() % 2 != 0 {
+        return Err(ErrorParseNode);
+    }
+    let x: [u8; 8] = [
+        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+    ];
+    let x: f64 = unsafe { core::mem::transmute(x) };
+    let y: [u8; 8] = [
+        data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
+    ];
+    let y: f64 = unsafe { core::mem::transmute(y) };
+    let mut inputs = Vec::<u16>::new();
+    for i in 0..(data.len() - 16) / 2 {
+        inputs.push(unsafe { *(core::ptr::addr_of!(inputs[i * 2 + 16]) as *const u16) });
+    }
+    Ok(Node {
+        x: x,
+        y: y,
+        inputs: inputs,
+    })
+}
+pub fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
+    let mut output = Vec::<Node>::new();
+    for block in hunt_tags(data, tags::NODE_START, tags::NODE_END) {
+        output.push(parse_node(block)?);
+    }
+    Ok(output)
 }
 pub fn read_file(data: &Vec<u8>) -> Result<(), ErrorDecode> {
     if data.len() < 16 {
