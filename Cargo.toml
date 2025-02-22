@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright 2025 UxuginPython
+[package]
+name = "rrtk_rsb"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
