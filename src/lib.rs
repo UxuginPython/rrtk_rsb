@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright 2025 UxuginPython
-const MAJOR: u8 = 0;
-const MINOR: u8 = 1;
-const PATCH: u8 = 0;
-const PRE: u8 = 0;
+pub const MAJOR: u8 = 0;
+pub const MINOR: u8 = 1;
+pub const PATCH: u8 = 0;
+pub const PRE: u8 = 0;
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorDecode {
+    LayoutBroken,
     MagicNumbers,
     Version,
 }
-pub fn read_file<const N: usize>(data: &[u8; N]) -> Result<(), ErrorDecode> {
+pub fn read_file(data: Vec<u8>) -> Result<(), ErrorDecode> {
+    if data.len() < 12 {
+        return Err(ErrorDecode::LayoutBroken);
+    }
     if data[0..8] != *b"NotAFood" {
         return Err(ErrorDecode::MagicNumbers);
     }
@@ -29,10 +34,4 @@ pub fn read_file<const N: usize>(data: &[u8; N]) -> Result<(), ErrorDecode> {
         return Err(ErrorDecode::Version);
     }
     Ok(())
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn it_works() {}
 }
