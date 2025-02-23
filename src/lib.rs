@@ -52,8 +52,8 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
     sections
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ErrorParseNode;
-pub fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
+struct ErrorParseNode;
+fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
     if data.len() < 16 || data.len() % 2 != 0 {
         return Err(ErrorParseNode);
     }
@@ -75,7 +75,7 @@ pub fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
         inputs: inputs,
     })
 }
-pub fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
+fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
     let mut output = Vec::<Node>::new();
     for block in hunt_tags(data, tags::NODE_START, tags::NODE_END) {
         output.push(parse_node(block)?);

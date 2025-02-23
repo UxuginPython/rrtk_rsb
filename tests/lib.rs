@@ -62,9 +62,12 @@ fn read_file_one_node() {
             tags::NODES_END,
         ))
     };
-    assert_eq!(read_file(&file.into()).unwrap(), vec![Node {
-        x: 0.0,
-        y: 0.0,
-        inputs: vec![],
-    }]);
+    assert_eq!(
+        read_file(&file.into()).unwrap(),
+        vec![Node {
+            x: 0.0,
+            y: 0.0,
+            inputs: vec![],
+        }]
+    );
 }
