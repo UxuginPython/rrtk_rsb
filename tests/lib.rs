@@ -15,7 +15,56 @@ fn read_file_version_error() {
     assert_eq!(read_file(&file.into()), Err(ErrorDecode::Version));
 }
 #[test]
-fn read_file_correct() {
+fn read_file_no_node_section() {
     let file: [u8; 16] = unsafe { core::mem::transmute((*b"rrtkstrmbldr", [0u8, 1, 0, 0])) };
-    read_file(&file.into()).unwrap();
+    assert_eq!(read_file(&file.into()).unwrap(), vec![]);
+}
+#[test]
+fn read_file_two_empty_node_sections() {
+    let file: [u8; 20] = unsafe {
+        core::mem::transmute((
+            *b"rrtkstrmbldr",
+            [0u8, 1, 0, 0],
+            tags::NODES_START,
+            tags::NODES_END,
+            tags::NODES_START,
+            tags::NODES_END,
+        ))
+    };
+    assert_eq!(read_file(&file.into()).unwrap(), vec![]);
+}
+#[test]
+fn read_file_empty() {
+    let file: [u8; 18] = unsafe {
+        core::mem::transmute((
+            *b"rrtkstrmbldr",
+            [0u8, 1, 0, 0],
+            tags::NODES_START,
+            tags::NODES_END,
+        ))
+    };
+    assert_eq!(read_file(&file.into()).unwrap(), vec![]);
+}
+#[test]
+fn read_file_one_node() {
+    #[allow(unused)]
+    #[repr(packed)]
+    struct TestFile([u8; 12], [u8; 4], u8, u8, f64, f64, u8, u8);
+    let file: [u8; 36] = unsafe {
+        core::mem::transmute(TestFile(
+            *b"rrtkstrmbldr",
+            [0u8, 1, 0, 0],
+            tags::NODES_START,
+            tags::NODE_START,
+            0.0f64,
+            0.0f64,
+            tags::NODE_END,
+            tags::NODES_END,
+        ))
+    };
+    assert_eq!(read_file(&file.into()).unwrap(), vec![Node {
+        x: 0.0,
+        y: 0.0,
+        inputs: vec![],
+    }]);
 }

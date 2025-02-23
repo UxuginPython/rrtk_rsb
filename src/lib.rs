@@ -11,12 +11,6 @@ pub mod tags {
     pub const NODE_START: u8 = unsafe { core::mem::transmute(2i8) };
     pub const NODE_END: u8 = unsafe { core::mem::transmute(-2i8) };
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ErrorDecode {
-    LayoutBroken,
-    MagicNumbers,
-    Version,
-}
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub x: f64,
@@ -88,7 +82,15 @@ pub fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
     }
     Ok(output)
 }
-pub fn read_file(data: &Vec<u8>) -> Result<(), ErrorDecode> {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ErrorDecode {
+    LayoutBroken,
+    MagicNumbers,
+    Version,
+    MultipleNodeSections,
+    NodeBroken,
+}
+pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
     if data.len() < 16 {
         return Err(ErrorDecode::LayoutBroken);
     }
@@ -111,8 +113,18 @@ pub fn read_file(data: &Vec<u8>) -> Result<(), ErrorDecode> {
     if pre > PRE {
         return Err(ErrorDecode::Version);
     }
-    hunt_tags(&data[16..], tags::NODES_START, tags::NODES_END);
-    Ok(())
+    let node_sections = hunt_tags(&data[16..], tags::NODES_START, tags::NODES_END);
+    if node_sections.len() > 1 {
+        return Err(ErrorDecode::MultipleNodeSections);
+    }
+    if node_sections.len() == 0 {
+        return Ok(Vec::new());
+    }
+    let node_section = node_sections[0];
+    match parse_nodes(node_section) {
+        Ok(parsed) => Ok(parsed),
+        Err(_) => Err(ErrorDecode::NodeBroken),
+    }
 }
 #[cfg(test)]
 mod tests {
