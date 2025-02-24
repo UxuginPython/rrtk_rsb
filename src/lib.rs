@@ -6,6 +6,7 @@ pub const PATCH: u8 = 0;
 pub const PRE: u8 = 0;
 pub mod tags {
     pub const IGNORE_NEXT: u8 = unsafe { core::mem::transmute(i8::MIN) };
+    pub const F64: u8 = unsafe { core::mem::transmute(i8::MIN + 1) };
     pub const NODES_START: u8 = unsafe { core::mem::transmute(1i8) };
     pub const NODES_END: u8 = unsafe { core::mem::transmute(-1i8) };
     pub const NODE_START: u8 = unsafe { core::mem::transmute(2i8) };
@@ -18,18 +19,22 @@ pub struct Node {
     pub inputs: Vec<u16>,
 }
 fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
-    let mut skip_next = false;
+    let mut skip_next = 0u8;
     let mut inside = 0u8;
     let mut sections = Vec::<&[u8]>::new();
     let mut current_section_start: Option<usize> = None;
     for i in 0..data.len() {
         let byte = data[i];
-        if skip_next {
-            skip_next = false;
+        if skip_next >= 1 {
+            skip_next -= 1;
             continue;
         }
         if byte == tags::IGNORE_NEXT {
-            skip_next = true;
+            skip_next = 1;
+            continue;
+        }
+        if byte == tags::F64 {
+            skip_next = 8;
             continue;
         }
         if byte == start {
@@ -54,19 +59,19 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ErrorParseNode;
 fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
-    if data.len() < 16 || data.len() % 2 != 0 {
+    if data.len() < 18 || data.len() % 2 != 0 || data[0] != tags::F64 || data[9] != tags::F64 {
         return Err(ErrorParseNode);
     }
     let x: [u8; 8] = [
-        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+        data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
     ];
     let x: f64 = unsafe { core::mem::transmute(x) };
     let y: [u8; 8] = [
-        data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
+        data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17],
     ];
     let y: f64 = unsafe { core::mem::transmute(y) };
     let mut inputs = Vec::<u16>::new();
-    for i in 0..(data.len() - 16) / 2 {
+    for i in 0..(data.len() - 18) / 2 {
         inputs.push(unsafe { *(core::ptr::addr_of!(inputs[i * 2 + 16]) as *const u16) });
     }
     Ok(Node {
@@ -131,7 +136,32 @@ mod tests {
     use super::*;
     #[test]
     fn hunt_tags_() {
-        let data = vec![1, 100, 2, 3, 101, 4, 100, 5, 6, 7, 101, 8];
+        let data = vec![
+            1,
+            100,
+            2,
+            3,
+            101,
+            tags::IGNORE_NEXT,
+            100,
+            tags::F64,
+            100,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            101,
+            //F64 tag ends here
+            4,
+            100,
+            5,
+            6,
+            7,
+            101,
+            8,
+        ];
         let found = hunt_tags(&data, 100, 101);
         assert_eq!(found, vec![&[2, 3][..], &[5, 6, 7][..]]);
     }

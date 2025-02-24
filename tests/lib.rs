@@ -49,14 +49,16 @@ fn read_file_empty() {
 fn read_file_one_node() {
     #[allow(unused)]
     #[repr(packed)]
-    struct TestFile([u8; 12], [u8; 4], u8, u8, f64, f64, u8, u8);
-    let file: [u8; 36] = unsafe {
+    struct TestFile([u8; 12], [u8; 4], u8, u8, u8, f64, u8, f64, u8, u8);
+    let file: [u8; 38] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
             tags::NODES_START,
             tags::NODE_START,
+            tags::F64,
             0.0f64,
+            tags::F64,
             0.0f64,
             tags::NODE_END,
             tags::NODES_END,
