@@ -34,39 +34,31 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
             skip_next -= 1;
             continue;
         }
-        if byte == tags::SKIP_1 {
-            skip_next = 1;
-            continue;
-        }
-        if byte == tags::SKIP_2 {
-            skip_next = 2;
-            continue;
-        }
-        if byte == tags::SKIP_4 {
-            skip_next = 4;
-            continue;
-        }
-        if byte == tags::SKIP_8 {
-            skip_next = 8;
-            continue;
-        }
-        if byte == tags::SKIP_16 {
-            skip_next = 16;
-            continue;
-        }
-        if byte == tags::SKIP_U8 {
-            //We want to skip the next byte, the one telling us how far to skip, itself, as well as
-            //adding a 'bias value' of 1 since skipping 0 bytes is worthless and it lets us skip up
-            //to 256 instead of 255.
-            skip_next = data[i + 1] as u32 + 2;
-            continue;
-        }
-        if byte == tags::SKIP_U16 {
-            //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
-            //skip) and a bias of 1.
-            skip_next = unsafe { core::mem::transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }
-                as u32
-                + 3;
+        let mut continuing = true;
+        skip_next = match byte {
+            tags::SKIP_1 => 1,
+            tags::SKIP_2 => 2,
+            tags::SKIP_4 => 4,
+            tags::SKIP_8 => 8,
+            tags::SKIP_16 => 16,
+            tags::SKIP_U8 => {
+                //We want to skip the next byte, the one telling us how far to skip, itself, as well as
+                //adding a 'bias value' of 1 since skipping 0 bytes is worthless and it lets us skip up
+                //to 256 instead of 255.
+                data[i + 1] as u32 + 2
+            }
+            tags::SKIP_U16 => {
+                //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
+                //skip) and a bias of 1.
+                (unsafe { core::mem::transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32
+                    + 3
+            }
+            _ => {
+                continuing = false;
+                0
+            }
+        };
+        if continuing {
             continue;
         }
         if byte == start {
