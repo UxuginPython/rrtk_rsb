@@ -96,7 +96,9 @@ fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
     let y: f64 = unsafe { core::mem::transmute(y) };
     let mut inputs = Vec::<u16>::new();
     for i in 0..(data.len() - 17) / 2 {
-        inputs.push(unsafe { *(core::ptr::addr_of!(inputs[i * 2 + 16]) as *const u16) });
+        inputs.push(unsafe {
+            core::mem::transmute::<[u8; 2], u16>([data[i * 2 + 17], data[i * 2 + 18]])
+        });
     }
     Ok(Node {
         x: x,

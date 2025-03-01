@@ -74,3 +74,59 @@ fn read_file_one_node() {
         }]
     );
 }
+#[test]
+fn read_file_two_nodes() {
+    #[allow(unused)]
+    #[repr(packed)]
+    struct TestFile(
+        [u8; 12],
+        [u8; 4],
+        u8,
+        u8,
+        u8,
+        f64,
+        f64,
+        u8,
+        u8,
+        u8,
+        f64,
+        f64,
+        u16,
+        u8,
+        u8,
+    );
+    let file: [u8; 58] = unsafe {
+        core::mem::transmute(TestFile(
+            *b"rrtkstrmbldr",
+            [0u8, 1, 0, 0],
+            tags::NODES_START,
+            tags::NODE_START,
+            tags::SKIP_16,
+            0.0f64,
+            0.0f64,
+            tags::NODE_END,
+            tags::NODE_START,
+            tags::SKIP_16,
+            0.0f64,
+            0.0f64,
+            0,
+            tags::NODE_END,
+            tags::NODES_END,
+        ))
+    };
+    assert_eq!(
+        read_file(&file.into()).unwrap(),
+        vec![
+            Node {
+                x: 0.0,
+                y: 0.0,
+                inputs: vec![],
+            },
+            Node {
+                x: 0.0,
+                y: 0.0,
+                inputs: vec![0],
+            }
+        ]
+    );
+}
