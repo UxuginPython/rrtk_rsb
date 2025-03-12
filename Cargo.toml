@@ -2,7 +2,12 @@
 # Copyright 2025 UxuginPython
 [package]
 name = "rrtk_rsb"
-version = "0.1.0"
-edition = "2021"
+version = "1.0.0-alpha.0"
+license = "BSD-3-Clause"
+edition = "2024"
+authors = ["UxuginPython <uxugin at uxugin dot com>"]
+homepage = "http://rrtk.org/crate/rrtk_rsb"
+repository = "https://github.com/UxuginPython/rrtk_rsb"
+description = "The reference parser for the RRTK Stream Builder RSB file format."
 
 [dependencies]
