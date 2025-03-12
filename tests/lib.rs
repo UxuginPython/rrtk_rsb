@@ -23,26 +23,32 @@ fn read_file_no_node_section() {
 }
 #[test]
 fn read_file_two_empty_node_sections() {
+    #[allow(unused)]
+    #[repr(packed)]
+    struct TestFile([u8; 12], [u8; 4], i8, i8, i8, i8);
     let file: [u8; 20] = unsafe {
-        core::mem::transmute((
+        core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
-            tags::NODES_START,
-            tags::NODES_END,
-            tags::NODES_START,
-            tags::NODES_END,
+            tags::NODE_SECTION_START,
+            tags::NODE_SECTION_END,
+            tags::NODE_SECTION_START,
+            tags::NODE_SECTION_END,
         ))
     };
     assert_eq!(read_file(&file.into()).unwrap(), vec![]);
 }
 #[test]
 fn read_file_empty() {
+    #[allow(unused)]
+    #[repr(packed)]
+    struct TestFile([u8; 12], [u8; 4], i8, i8);
     let file: [u8; 18] = unsafe {
         core::mem::transmute((
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
-            tags::NODES_START,
-            tags::NODES_END,
+            tags::NODE_SECTION_START,
+            tags::NODE_SECTION_END,
         ))
     };
     assert_eq!(read_file(&file.into()).unwrap(), vec![]);
@@ -51,18 +57,18 @@ fn read_file_empty() {
 fn read_file_one_node() {
     #[allow(unused)]
     #[repr(packed)]
-    struct TestFile([u8; 12], [u8; 4], u8, u8, u8, f64, f64, u8, u8);
+    struct TestFile([u8; 12], [u8; 4], i8, i8, i8, f64, f64, i8, i8);
     let file: [u8; 37] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
-            tags::NODES_START,
+            tags::NODE_SECTION_START,
             tags::NODE_START,
             tags::SKIP_16,
             0.0f64,
             0.0f64,
             tags::NODE_END,
-            tags::NODES_END,
+            tags::NODE_SECTION_END,
         ))
     };
     assert_eq!(
@@ -81,25 +87,25 @@ fn read_file_two_nodes() {
     struct TestFile(
         [u8; 12],
         [u8; 4],
-        u8,
-        u8,
-        u8,
+        i8,
+        i8,
+        i8,
         f64,
         f64,
-        u8,
-        u8,
-        u8,
+        i8,
+        i8,
+        i8,
         f64,
         f64,
         u16,
-        u8,
-        u8,
+        i8,
+        i8,
     );
     let file: [u8; 58] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
-            tags::NODES_START,
+            tags::NODE_SECTION_START,
             tags::NODE_START,
             tags::SKIP_16,
             0.0f64,
@@ -111,7 +117,7 @@ fn read_file_two_nodes() {
             0.0f64,
             0,
             tags::NODE_END,
-            tags::NODES_END,
+            tags::NODE_SECTION_END,
         ))
     };
     assert_eq!(

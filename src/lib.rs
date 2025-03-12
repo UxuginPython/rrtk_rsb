@@ -73,8 +73,7 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
             tags_u8::SKIP_U16 => {
                 //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
                 //skip) and a bias of 1.
-                (unsafe { transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32
-                    + 3
+                (unsafe { transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32 + 3
             }
             _ => {
                 continuing = false;
@@ -119,9 +118,7 @@ fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
     let y: f64 = unsafe { transmute(y) };
     let mut inputs = Vec::<u16>::new();
     for i in 0..(data.len() - 17) / 2 {
-        inputs.push(unsafe {
-            transmute::<[u8; 2], u16>([data[i * 2 + 17], data[i * 2 + 18]])
-        });
+        inputs.push(unsafe { transmute::<[u8; 2], u16>([data[i * 2 + 17], data[i * 2 + 18]]) });
     }
     Ok(Node {
         x: x,
@@ -167,7 +164,11 @@ pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
     if pre > PRE {
         return Err(ErrorDecode::Version);
     }
-    let node_sections = hunt_tags(&data[16..], tags_u8::NODE_SECTION_START, tags_u8::NODE_SECTION_END);
+    let node_sections = hunt_tags(
+        &data[16..],
+        tags_u8::NODE_SECTION_START,
+        tags_u8::NODE_SECTION_END,
+    );
     if node_sections.len() > 1 {
         return Err(ErrorDecode::MultipleNodeSections);
     }
