@@ -1,21 +1,44 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright 2025 UxuginPython
+use core::mem::transmute;
 pub const MAJOR: u8 = 0;
 pub const MINOR: u8 = 1;
 pub const PATCH: u8 = 0;
 pub const PRE: u8 = 0;
 pub mod tags {
-    pub const SKIP_1: u8 = unsafe { core::mem::transmute(i8::MIN) };
-    pub const SKIP_2: u8 = unsafe { core::mem::transmute(i8::MIN + 1) };
-    pub const SKIP_4: u8 = unsafe { core::mem::transmute(i8::MIN + 2) };
-    pub const SKIP_8: u8 = unsafe { core::mem::transmute(i8::MIN + 3) };
-    pub const SKIP_16: u8 = unsafe { core::mem::transmute(i8::MIN + 4) };
-    pub const SKIP_U8: u8 = unsafe { core::mem::transmute(i8::MIN + 5) };
-    pub const SKIP_U16: u8 = unsafe { core::mem::transmute(i8::MIN + 6) };
-    pub const NODES_START: u8 = unsafe { core::mem::transmute(1i8) };
-    pub const NODES_END: u8 = unsafe { core::mem::transmute(-1i8) };
-    pub const NODE_START: u8 = unsafe { core::mem::transmute(2i8) };
-    pub const NODE_END: u8 = unsafe { core::mem::transmute(-2i8) };
+    pub const SKIP_1: i8 = -128;
+    pub const SKIP_2: i8 = -127;
+    pub const SKIP_4: i8 = -126;
+    pub const SKIP_8: i8 = -125;
+    pub const SKIP_16: i8 = -124;
+    pub const SKIP_U8: i8 = -123;
+    pub const SKIP_U16: i8 = -122;
+    pub const NODE_ID: i8 = 0;
+    pub const COORDINATES: i8 = 3;
+    pub const NODE_SECTION_START: i8 = 1;
+    pub const NODE_SECTION_END: i8 = -1;
+    pub const NODE_START: i8 = 2;
+    pub const NODE_END: i8 = -2;
+    pub const NODE_INPUT_LIST_START: i8 = 4;
+    pub const NODE_INPUT_LIST_END: i8 = -4;
+}
+mod tags_u8 {
+    use super::*;
+    pub const SKIP_1: u8 = unsafe { transmute(tags::SKIP_1) };
+    pub const SKIP_2: u8 = unsafe { transmute(tags::SKIP_2) };
+    pub const SKIP_4: u8 = unsafe { transmute(tags::SKIP_4) };
+    pub const SKIP_8: u8 = unsafe { transmute(tags::SKIP_8) };
+    pub const SKIP_16: u8 = unsafe { transmute(tags::SKIP_16) };
+    pub const SKIP_U8: u8 = unsafe { transmute(tags::SKIP_U8) };
+    pub const SKIP_U16: u8 = unsafe { transmute(tags::SKIP_U16) };
+    pub const NODE_ID: u8 = unsafe { transmute(tags::NODE_ID) };
+    pub const COORDINATES: u8 = unsafe { transmute(tags::COORDINATES) };
+    pub const NODE_SECTION_START: u8 = unsafe { transmute(tags::NODE_SECTION_START) };
+    pub const NODE_SECTION_END: u8 = unsafe { transmute(tags::NODE_SECTION_END) };
+    pub const NODE_START: u8 = unsafe { transmute(tags::NODE_START) };
+    pub const NODE_END: u8 = unsafe { transmute(tags::NODE_END) };
+    pub const NODE_INPUT_LIST_START: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_START) };
+    pub const NODE_INPUT_LIST_END: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_END) };
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
@@ -36,21 +59,21 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
         }
         let mut continuing = true;
         skip_next = match byte {
-            tags::SKIP_1 => 1,
-            tags::SKIP_2 => 2,
-            tags::SKIP_4 => 4,
-            tags::SKIP_8 => 8,
-            tags::SKIP_16 => 16,
-            tags::SKIP_U8 => {
+            tags_u8::SKIP_1 => 1,
+            tags_u8::SKIP_2 => 2,
+            tags_u8::SKIP_4 => 4,
+            tags_u8::SKIP_8 => 8,
+            tags_u8::SKIP_16 => 16,
+            tags_u8::SKIP_U8 => {
                 //We want to skip the next byte, the one telling us how far to skip, itself, as well as
                 //adding a 'bias value' of 1 since skipping 0 bytes is worthless and it lets us skip up
                 //to 256 instead of 255.
                 data[i + 1] as u32 + 2
             }
-            tags::SKIP_U16 => {
+            tags_u8::SKIP_U16 => {
                 //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
                 //skip) and a bias of 1.
-                (unsafe { core::mem::transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32
+                (unsafe { transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32
                     + 3
             }
             _ => {
@@ -83,21 +106,21 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ErrorParseNode;
 fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
-    if data.len() < 17 || data.len() % 2 != 1 || data[0] != tags::SKIP_16 {
+    if data.len() < 17 || data.len() % 2 != 1 || data[0] != tags_u8::SKIP_16 {
         return Err(ErrorParseNode);
     }
     let x: [u8; 8] = [
         data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
     ];
-    let x: f64 = unsafe { core::mem::transmute(x) };
+    let x: f64 = unsafe { transmute(x) };
     let y: [u8; 8] = [
         data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16],
     ];
-    let y: f64 = unsafe { core::mem::transmute(y) };
+    let y: f64 = unsafe { transmute(y) };
     let mut inputs = Vec::<u16>::new();
     for i in 0..(data.len() - 17) / 2 {
         inputs.push(unsafe {
-            core::mem::transmute::<[u8; 2], u16>([data[i * 2 + 17], data[i * 2 + 18]])
+            transmute::<[u8; 2], u16>([data[i * 2 + 17], data[i * 2 + 18]])
         });
     }
     Ok(Node {
@@ -108,7 +131,7 @@ fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
 }
 fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
     let mut output = Vec::<Node>::new();
-    for block in hunt_tags(data, tags::NODE_START, tags::NODE_END) {
+    for block in hunt_tags(data, tags_u8::NODE_START, tags_u8::NODE_END) {
         output.push(parse_node(block)?);
     }
     Ok(output)
@@ -144,7 +167,7 @@ pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
     if pre > PRE {
         return Err(ErrorDecode::Version);
     }
-    let node_sections = hunt_tags(&data[16..], tags::NODES_START, tags::NODES_END);
+    let node_sections = hunt_tags(&data[16..], tags_u8::NODE_SECTION_START, tags_u8::NODE_SECTION_END);
     if node_sections.len() > 1 {
         return Err(ErrorDecode::MultipleNodeSections);
     }
@@ -163,14 +186,14 @@ mod tests {
     #[test]
     fn hunt_tags_() {
         let data = vec![
-            1,
+            1u8,
             100,
             2,
             3,
             101,
-            tags::SKIP_1,
+            tags_u8::SKIP_1,
             100,
-            tags::SKIP_8,
+            tags_u8::SKIP_8,
             100,
             1,
             2,
@@ -187,7 +210,7 @@ mod tests {
             7,
             101,
             8,
-            tags::SKIP_U8,
+            tags_u8::SKIP_U8,
             2,
             100,
             4,
@@ -198,10 +221,10 @@ mod tests {
             9,
             101,
             5,
-            tags::SKIP_U16,
+            tags_u8::SKIP_U16,
             //Just a really hacky way of inserting a u16 into an array of u8s.
-            unsafe { core::mem::transmute::<u16, [u8; 2]>(3u16)[0] },
-            unsafe { core::mem::transmute::<u16, [u8; 2]>(3u16)[1] },
+            unsafe { transmute::<u16, [u8; 2]>(3u16)[0] },
+            unsafe { transmute::<u16, [u8; 2]>(3u16)[1] },
             100,
             2,
             101,
