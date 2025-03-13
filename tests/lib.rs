@@ -131,12 +131,14 @@ fn read_file_two_nodes() {
         f64,
         f64,
         i8,
+        i8,
+        u8,
         u16,
         i8,
         i8,
         i8,
     );
-    let file: [u8; 72] = unsafe {
+    let file: [u8; 74] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
             [0u8, 1, 0, 0],
@@ -161,6 +163,8 @@ fn read_file_two_nodes() {
             0.0f64,
             0.0f64,
             tags::NODE_INPUT_LIST_START,
+            tags::SKIP_U8,
+            1u8,
             0u16,
             tags::NODE_INPUT_LIST_END,
             tags::NODE_END,

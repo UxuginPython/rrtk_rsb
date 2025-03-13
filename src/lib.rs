@@ -47,6 +47,14 @@ pub struct Node {
     pub y: f64,
     pub inputs: Vec<u16>,
 }
+fn bytes_to_u16(it: &[u8]) -> u16 {
+    assert_eq!(it.len(), 2);
+    unsafe { transmute([it[0], it[1]]) }
+}
+fn bytes_to_f64(it: &[u8]) -> f64 {
+    assert_eq!(it.len(), 8);
+    unsafe { transmute([it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7]]) }
+}
 mod categorizer {
     use super::*;
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -91,7 +99,7 @@ mod categorizer {
                     return CategorizedByte::Skip;
                 }
                 BigSkipState::NeedU16Byte1(byte0) => {
-                    self.skip_next = unsafe { transmute::<[u8; 2], u16>([byte0, byte]) } as u32 + 1;
+                    self.skip_next = bytes_to_u16(&[byte0, byte]) as u32 + 1;
                     self.big_skip_state = BigSkipState::NotBigSkip;
                     return CategorizedByte::Skip;
                 }
@@ -168,6 +176,23 @@ fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
     }
     sections
 }
+fn hunt_numbers(data: &[u8], max_count: Option<usize>) -> Vec<u8> {
+    let mut output = Vec::new();
+    let mut categorizer = Categorizer::new();
+    for i in 0..data.len() {
+        let byte = categorizer.feed(data[i]);
+        match byte {
+            CategorizedByte::Number(x) => output.push(x),
+            _ => {}
+        }
+        if let Some(some_max_count) = max_count {
+            if output.len() >= some_max_count {
+                return output;
+            }
+        }
+    }
+    output
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct ErrorParseNode;
 fn find_and_parse_node_id(data: &[u8]) -> Result<u16, ErrorParseNode> {
@@ -176,11 +201,11 @@ fn find_and_parse_node_id(data: &[u8]) -> Result<u16, ErrorParseNode> {
         Some(x) => x,
         None => return Err(ErrorParseNode),
     };
-    //TODO: make this follow the rule that you can use [SKIP_U8 2u8] and [SKIP_U16 2u16] too
-    if found[1] != tags_u8::SKIP_2 {
+    let found_numbers = hunt_numbers(found, Some(2));
+    if found_numbers.len() != 2 {
         return Err(ErrorParseNode);
     }
-    return Ok(unsafe { transmute([found[2], found[3]]) });
+    Ok(unsafe { transmute([found_numbers[0], found_numbers[1]]) })
 }
 fn find_and_parse_coordinates(data: &[u8]) -> Result<(f64, f64), ErrorParseNode> {
     let found = hunt_tag(data, tags_u8::COORDINATES);
@@ -188,22 +213,13 @@ fn find_and_parse_coordinates(data: &[u8]) -> Result<(f64, f64), ErrorParseNode>
         Some(x) => x,
         None => return Err(ErrorParseNode),
     };
-    //TODO: make this allow more options for how the numbers are escaped
-    if found[1] != tags_u8::SKIP_16 {
+    let found_numbers = hunt_numbers(found, Some(16));
+    if found_numbers.len() != 16 {
         return Err(ErrorParseNode);
     }
     Ok((
-        unsafe {
-            transmute([
-                found[2], found[3], found[4], found[5], found[6], found[7], found[8], found[9],
-            ])
-        },
-        unsafe {
-            transmute([
-                found[10], found[11], found[12], found[13], found[14], found[15], found[16],
-                found[17],
-            ])
-        },
+        bytes_to_f64(&found_numbers[0..=7]),
+        bytes_to_f64(&found_numbers[8..=15]),
     ))
 }
 //TODO: make this able to error in case a bad thing happens
@@ -220,9 +236,13 @@ fn find_and_parse_inputs(data: &[u8]) -> Vec<u16> {
         panic!();
     }
     let input_section = input_section[0];
+    let found_numbers = hunt_numbers(input_section, None);
     let mut inputs = Vec::<u16>::new();
-    for i in 0..(input_section.len() / 2) {
-        inputs.push(unsafe { transmute([input_section[i * 2], input_section[i * 2 + 1]]) });
+    for i in 0..(found_numbers.len() / 2) {
+        inputs.push(bytes_to_u16(&[
+            found_numbers[i * 2],
+            found_numbers[i * 2 + 1],
+        ]));
     }
     inputs
 }
