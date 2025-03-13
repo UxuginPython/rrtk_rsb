@@ -143,49 +143,19 @@ fn hunt_tag(data: &[u8], tag: u8) -> Option<&[u8]> {
     return None;
 }
 fn hunt_tags(data: &[u8], start: u8, end: u8) -> Vec<&[u8]> {
-    let mut skip_next = 0u32;
     let mut inside = 0u8;
     let mut sections = Vec::<&[u8]>::new();
     let mut current_section_start: Option<usize> = None;
+    let mut categorizer = Categorizer::new();
     for i in 0..data.len() {
-        if skip_next >= 1 {
-            skip_next -= 1;
-            continue;
-        }
-        let byte = data[i];
-        let mut continuing = true;
-        skip_next = match byte {
-            tags_u8::SKIP_1 => 1,
-            tags_u8::SKIP_2 => 2,
-            tags_u8::SKIP_4 => 4,
-            tags_u8::SKIP_8 => 8,
-            tags_u8::SKIP_16 => 16,
-            tags_u8::SKIP_U8 => {
-                //We want to skip the next byte, the one telling us how far to skip, itself, as well as
-                //adding a 'bias value' of 1 since skipping 0 bytes is worthless and it lets us skip up
-                //to 256 instead of 255.
-                data[i + 1] as u32 + 2
-            }
-            tags_u8::SKIP_U16 => {
-                //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
-                //skip) and a bias of 1.
-                (unsafe { transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32 + 3
-            }
-            _ => {
-                continuing = false;
-                0
-            }
-        };
-        if continuing {
-            continue;
-        }
-        if byte == start {
+        let byte = categorizer.feed(data[i]);
+        if byte == CategorizedByte::Tag(start) {
             if inside == 0 {
                 current_section_start = Some(i + 1);
             }
             inside += 1;
         }
-        if byte == end && inside > 0 {
+        if byte == CategorizedByte::Tag(end) && inside > 0 {
             inside -= 1;
             if inside == 0 {
                 let real_current_section_start = current_section_start.unwrap();
