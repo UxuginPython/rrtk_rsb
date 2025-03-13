@@ -212,6 +212,7 @@ pub mod error {
         pub enum ParseNode {
             ParseNodeID(parse_node::ParseNodeID),
             ParseCoordinates(parse_node::ParseCoordinates),
+            ParseInputs(parse_node::ParseInputs),
         }
         impl From<parse_node::ParseNodeID> for ParseNode {
             fn from(was: parse_node::ParseNodeID) -> Self {
@@ -221,6 +222,11 @@ pub mod error {
         impl From<parse_node::ParseCoordinates> for ParseNode {
             fn from(was: parse_node::ParseCoordinates) -> Self {
                 Self::ParseCoordinates(was)
+            }
+        }
+        impl From<parse_node::ParseInputs> for ParseNode {
+            fn from(was: parse_node::ParseInputs) -> Self {
+                Self::ParseInputs(was)
             }
         }
         pub mod parse_node {
@@ -233,6 +239,11 @@ pub mod error {
             pub enum ParseCoordinates {
                 NotFound,
                 IncorrectLength,
+            }
+            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+            pub enum ParseInputs {
+                MultipleInputSections,
+                LayoutBroken,
             }
         }
     }
@@ -266,21 +277,25 @@ fn find_and_parse_coordinates(
         bytes_to_f64(&found_numbers[8..=15]),
     ))
 }
-//TODO: make this able to error in case a bad thing happens
-fn find_and_parse_inputs(data: &[u8]) -> Vec<u16> {
+fn find_and_parse_inputs(
+    data: &[u8],
+) -> Result<Vec<u16>, error::parse_file::parse_node::ParseInputs> {
     let input_section = hunt_tags(
         data,
         tags_u8::NODE_INPUT_LIST_START,
         tags_u8::NODE_INPUT_LIST_END,
     );
     if input_section.len() == 0 {
-        return Vec::new();
+        return Ok(Vec::new());
     }
     if input_section.len() != 1 {
-        panic!();
+        return Err(error::parse_file::parse_node::ParseInputs::MultipleInputSections);
     }
     let input_section = input_section[0];
     let found_numbers = hunt_numbers(input_section, None);
+    if found_numbers.len() % 2 != 0 {
+        return Err(error::parse_file::parse_node::ParseInputs::LayoutBroken);
+    }
     let mut inputs = Vec::<u16>::new();
     for i in 0..(found_numbers.len() / 2) {
         inputs.push(bytes_to_u16(&[
@@ -288,12 +303,12 @@ fn find_and_parse_inputs(data: &[u8]) -> Vec<u16> {
             found_numbers[i * 2 + 1],
         ]));
     }
-    inputs
+    Ok(inputs)
 }
 fn parse_node(data: &[u8]) -> Result<Node, error::parse_file::ParseNode> {
     let id = find_and_parse_node_id(data)?;
     let (x, y) = find_and_parse_coordinates(data)?;
-    let inputs = find_and_parse_inputs(data);
+    let inputs = find_and_parse_inputs(data)?;
     Ok(Node {
         id: id,
         x: x,
