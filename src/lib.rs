@@ -193,29 +193,41 @@ fn hunt_numbers(data: &[u8], max_count: Option<usize>) -> Vec<u8> {
     }
     output
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ErrorParseNode;
-fn find_and_parse_node_id(data: &[u8]) -> Result<u16, ErrorParseNode> {
+pub mod error {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum ParseFile {
+        LayoutBroken,
+        MagicNumbers,
+        Version,
+        MultipleNodeSections,
+        ParseNode(parse_file::ParseNode),
+    }
+    pub mod parse_file {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub struct ParseNode;
+    }
+}
+fn find_and_parse_node_id(data: &[u8]) -> Result<u16, error::parse_file::ParseNode> {
     let found = hunt_tag(data, tags_u8::NODE_ID);
     let found = match found {
         Some(x) => x,
-        None => return Err(ErrorParseNode),
+        None => return Err(error::parse_file::ParseNode),
     };
     let found_numbers = hunt_numbers(found, Some(2));
     if found_numbers.len() != 2 {
-        return Err(ErrorParseNode);
+        return Err(error::parse_file::ParseNode);
     }
     Ok(unsafe { transmute([found_numbers[0], found_numbers[1]]) })
 }
-fn find_and_parse_coordinates(data: &[u8]) -> Result<(f64, f64), ErrorParseNode> {
+fn find_and_parse_coordinates(data: &[u8]) -> Result<(f64, f64), error::parse_file::ParseNode> {
     let found = hunt_tag(data, tags_u8::COORDINATES);
     let found = match found {
         Some(x) => x,
-        None => return Err(ErrorParseNode),
+        None => return Err(error::parse_file::ParseNode),
     };
     let found_numbers = hunt_numbers(found, Some(16));
     if found_numbers.len() != 16 {
-        return Err(ErrorParseNode);
+        return Err(error::parse_file::ParseNode);
     }
     Ok((
         bytes_to_f64(&found_numbers[0..=7]),
@@ -246,7 +258,7 @@ fn find_and_parse_inputs(data: &[u8]) -> Vec<u16> {
     }
     inputs
 }
-fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
+fn parse_node(data: &[u8]) -> Result<Node, error::parse_file::ParseNode> {
     let id = find_and_parse_node_id(data)?;
     let (x, y) = find_and_parse_coordinates(data)?;
     let inputs = find_and_parse_inputs(data);
@@ -257,43 +269,35 @@ fn parse_node(data: &[u8]) -> Result<Node, ErrorParseNode> {
         inputs: inputs,
     })
 }
-fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, ErrorParseNode> {
+fn parse_nodes(data: &[u8]) -> Result<Vec<Node>, error::parse_file::ParseNode> {
     let mut output = Vec::<Node>::new();
     for block in hunt_tags(data, tags_u8::NODE_START, tags_u8::NODE_END) {
         output.push(parse_node(block)?);
     }
     Ok(output)
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ErrorDecode {
-    LayoutBroken,
-    MagicNumbers,
-    Version,
-    MultipleNodeSections,
-    NodeBroken,
-}
-pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
+pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, error::ParseFile> {
     if data.len() < 16 {
-        return Err(ErrorDecode::LayoutBroken);
+        return Err(error::ParseFile::LayoutBroken);
     }
     if data[0..12] != *b"rrtkstrmbldr" {
-        return Err(ErrorDecode::MagicNumbers);
+        return Err(error::ParseFile::MagicNumbers);
     }
     let major = data[12];
     if major > MAJOR {
-        return Err(ErrorDecode::Version);
+        return Err(error::ParseFile::Version);
     }
     let minor = data[13];
     if minor > MINOR {
-        return Err(ErrorDecode::Version);
+        return Err(error::ParseFile::Version);
     }
     let patch = data[14];
     if patch > PATCH {
-        return Err(ErrorDecode::Version);
+        return Err(error::ParseFile::Version);
     }
     let pre = data[15];
     if pre > PRE {
-        return Err(ErrorDecode::Version);
+        return Err(error::ParseFile::Version);
     }
     let node_sections = hunt_tags(
         &data[16..],
@@ -301,7 +305,7 @@ pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
         tags_u8::NODE_SECTION_END,
     );
     if node_sections.len() > 1 {
-        return Err(ErrorDecode::MultipleNodeSections);
+        return Err(error::ParseFile::MultipleNodeSections);
     }
     if node_sections.len() == 0 {
         return Ok(Vec::new());
@@ -309,7 +313,7 @@ pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, ErrorDecode> {
     let node_section = node_sections[0];
     match parse_nodes(node_section) {
         Ok(parsed) => Ok(parsed),
-        Err(_) => Err(ErrorDecode::NodeBroken),
+        Err(error) => Err(error::ParseFile::ParseNode(error)),
     }
 }
 #[cfg(test)]
