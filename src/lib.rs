@@ -202,32 +202,64 @@ pub mod error {
         MultipleNodeSections,
         ParseNode(parse_file::ParseNode),
     }
+    impl From<parse_file::ParseNode> for ParseFile {
+        fn from(was: parse_file::ParseNode) -> Self {
+            Self::ParseNode(was)
+        }
+    }
     pub mod parse_file {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        pub struct ParseNode;
+        pub enum ParseNode {
+            ParseNodeID(parse_node::ParseNodeID),
+            ParseCoordinates(parse_node::ParseCoordinates),
+        }
+        impl From<parse_node::ParseNodeID> for ParseNode {
+            fn from(was: parse_node::ParseNodeID) -> Self {
+                Self::ParseNodeID(was)
+            }
+        }
+        impl From<parse_node::ParseCoordinates> for ParseNode {
+            fn from(was: parse_node::ParseCoordinates) -> Self {
+                Self::ParseCoordinates(was)
+            }
+        }
+        pub mod parse_node {
+            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+            pub enum ParseNodeID {
+                NotFound,
+                IncorrectLength,
+            }
+            #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+            pub enum ParseCoordinates {
+                NotFound,
+                IncorrectLength,
+            }
+        }
     }
 }
-fn find_and_parse_node_id(data: &[u8]) -> Result<u16, error::parse_file::ParseNode> {
+fn find_and_parse_node_id(data: &[u8]) -> Result<u16, error::parse_file::parse_node::ParseNodeID> {
     let found = hunt_tag(data, tags_u8::NODE_ID);
     let found = match found {
         Some(x) => x,
-        None => return Err(error::parse_file::ParseNode),
+        None => return Err(error::parse_file::parse_node::ParseNodeID::NotFound),
     };
     let found_numbers = hunt_numbers(found, Some(2));
     if found_numbers.len() != 2 {
-        return Err(error::parse_file::ParseNode);
+        return Err(error::parse_file::parse_node::ParseNodeID::IncorrectLength);
     }
     Ok(unsafe { transmute([found_numbers[0], found_numbers[1]]) })
 }
-fn find_and_parse_coordinates(data: &[u8]) -> Result<(f64, f64), error::parse_file::ParseNode> {
+fn find_and_parse_coordinates(
+    data: &[u8],
+) -> Result<(f64, f64), error::parse_file::parse_node::ParseCoordinates> {
     let found = hunt_tag(data, tags_u8::COORDINATES);
     let found = match found {
         Some(x) => x,
-        None => return Err(error::parse_file::ParseNode),
+        None => return Err(error::parse_file::parse_node::ParseCoordinates::NotFound),
     };
     let found_numbers = hunt_numbers(found, Some(16));
     if found_numbers.len() != 16 {
-        return Err(error::parse_file::ParseNode);
+        return Err(error::parse_file::parse_node::ParseCoordinates::IncorrectLength);
     }
     Ok((
         bytes_to_f64(&found_numbers[0..=7]),
