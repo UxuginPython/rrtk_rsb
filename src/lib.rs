@@ -47,42 +47,96 @@ pub struct Node {
     pub y: f64,
     pub inputs: Vec<u16>,
 }
+mod categorizer {
+    use super::*;
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum BigSkipState {
+        NotBigSkip,
+        NeedU8,
+        NeedU16Byte0,
+        NeedU16Byte1(u8), //byte 0 is stored
+    }
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub enum CategorizedByte {
+        Tag(u8),
+        Number(u8), //This can be used for parts of numbers as well, such as 1 byte from a u16.
+        Skip,
+    }
+    #[derive(Clone, Debug)]
+    pub struct Categorizer {
+        skip_next: u32,
+        big_skip_state: BigSkipState,
+    }
+    impl Categorizer {
+        pub fn new() -> Self {
+            Self {
+                skip_next: 0,
+                big_skip_state: BigSkipState::NotBigSkip,
+            }
+        }
+        pub fn feed(&mut self, byte: u8) -> CategorizedByte {
+            if self.skip_next >= 1 {
+                self.skip_next -= 1;
+                return CategorizedByte::Number(byte);
+            }
+            match self.big_skip_state {
+                BigSkipState::NotBigSkip => {}
+                BigSkipState::NeedU8 => {
+                    self.skip_next = byte as u32 + 1;
+                    self.big_skip_state = BigSkipState::NotBigSkip;
+                    return CategorizedByte::Skip;
+                }
+                BigSkipState::NeedU16Byte0 => {
+                    self.big_skip_state = BigSkipState::NeedU16Byte1(byte);
+                    return CategorizedByte::Skip;
+                }
+                BigSkipState::NeedU16Byte1(byte0) => {
+                    self.skip_next = unsafe { transmute::<[u8; 2], u16>([byte0, byte]) } as u32 + 1;
+                    self.big_skip_state = BigSkipState::NotBigSkip;
+                    return CategorizedByte::Skip;
+                }
+            }
+            match byte {
+                tags_u8::SKIP_1 => {
+                    self.skip_next = 1;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_2 => {
+                    self.skip_next = 2;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_4 => {
+                    self.skip_next = 4;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_8 => {
+                    self.skip_next = 8;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_16 => {
+                    self.skip_next = 16;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_U8 => {
+                    self.big_skip_state = BigSkipState::NeedU8;
+                    return CategorizedByte::Skip;
+                }
+                tags_u8::SKIP_U16 => {
+                    self.big_skip_state = BigSkipState::NeedU16Byte0;
+                    return CategorizedByte::Skip;
+                }
+                _ => {}
+            }
+            CategorizedByte::Tag(byte)
+        }
+    }
+}
+use categorizer::*;
 fn hunt_tag(data: &[u8], tag: u8) -> Option<&[u8]> {
-    let mut skip_next = 0u32;
+    let mut categorizer = Categorizer::new();
     for i in 0..data.len() {
-        if skip_next >= 1 {
-            skip_next -= 1;
-            continue;
-        }
-        let byte = data[i];
-        let mut continuing = true;
-        skip_next = match byte {
-            tags_u8::SKIP_1 => 1,
-            tags_u8::SKIP_2 => 2,
-            tags_u8::SKIP_4 => 4,
-            tags_u8::SKIP_8 => 8,
-            tags_u8::SKIP_16 => 16,
-            tags_u8::SKIP_U8 => {
-                //We want to skip the next byte, the one telling us how far to skip, itself, as well as
-                //adding a 'bias value' of 1 since skipping 0 bytes is worthless and it lets us skip up
-                //to 256 instead of 255.
-                data[i + 1] as u32 + 2
-            }
-            tags_u8::SKIP_U16 => {
-                //Similarly to SKIP_U8, we skip the next two bytes (the ones telling us how far to
-                //skip) and a bias of 1.
-                (unsafe { transmute::<[u8; 2], u16>([data[i + 1], data[i + 2]]) }) as u32 + 3
-            }
-            _ => {
-                continuing = false;
-                0
-            }
-        };
-        if continuing {
-            continue;
-        }
-        //Everything above here is copied from hunt_tags.
-        if byte == tag {
+        let byte = categorizer.feed(data[i]);
+        if byte == CategorizedByte::Tag(tag) {
             return Some(&data[i..data.len()]);
         }
     }
