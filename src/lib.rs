@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // Copyright 2025 UxuginPython
 use core::mem::transmute;
-pub const MAJOR: u8 = 0;
-pub const MINOR: u8 = 1;
+pub const MAJOR: u8 = 1;
+pub const MINOR: u8 = 0;
 pub const PATCH: u8 = 0;
 pub const PRE: u8 = 0;
 pub mod tags {
