@@ -363,6 +363,15 @@ pub fn read_file(data: &Vec<u8>) -> Result<Vec<Node>, error::ParseFile> {
         Err(error) => Err(error::ParseFile::ParseNode(error)),
     }
 }
+mod file_start {
+    use super::*;
+    #[allow(unused)]
+    #[repr(packed)]
+    struct FileStart([u8; 12], u8, u8, u8, u8);
+    pub const FILE_START: [u8; 16] =
+        unsafe { transmute(FileStart(*b"rrtkstrmbldr", MAJOR, MINOR, PATCH, PRE)) };
+}
+pub use file_start::FILE_START;
 #[cfg(test)]
 mod tests {
     use super::*;
