@@ -379,11 +379,11 @@ mod file_start {
 }
 pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
     //18 bytes for the magic numbers, version, and NODE_SECTION tags
-    //26 bytes for each node without inputs
-    //3 bytes per input
-    let mut to_allocate = 18 + 26 * nodes.len();
+    //28 bytes for each node without inputs
+    //2 bytes per input
+    let mut to_allocate = 18 + 28 * nodes.len();
     for node in nodes {
-        to_allocate += 3 * node.inputs.len();
+        to_allocate += 2 * node.inputs.len();
     }
     let mut output = Vec::with_capacity(to_allocate);
     output.extend(FILE_START);
@@ -398,8 +398,9 @@ pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
         output.extend(f64_to_bytes(node.x));
         output.extend(f64_to_bytes(node.y));
         output.push(tags_u8::NODE_INPUT_LIST_START);
+        output.push(tags_u8::SKIP_U8);
+        output.push((node.inputs.len() * 2 - 1) as u8);
         for input in &node.inputs {
-            output.push(tags_u8::SKIP_2);
             output.extend(u16_to_bytes(*input));
         }
         output.push(tags_u8::NODE_INPUT_LIST_END);
