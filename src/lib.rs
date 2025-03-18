@@ -378,8 +378,14 @@ mod file_start {
         unsafe { transmute(FileStart(*b"rrtkstrmbldr", MAJOR, MINOR, PATCH, PRE)) };
 }
 pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
-    //TODO: It would be cool figure out the size in advance based on the number of nodes.
-    let mut output = Vec::from(FILE_START);
+    //18 bytes for the magic numbers, version, and NODE_SECTION tags;
+    //26 bytes for each node assuming no inputs
+    //It may make sense to assume some number of inputs for each node, but the current way ensures that no
+    //more memory will ever be allocated than necessary. It would also be possible to count each node's
+    //inputs and calculate the correct size, but that would be probably more compute time than it's
+    //worth.
+    let mut output = Vec::with_capacity(18 + 26 * nodes.len());
+    output.extend(FILE_START);
     output.push(tags_u8::NODE_SECTION_START);
     for node in nodes {
         output.push(tags_u8::NODE_START);
