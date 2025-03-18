@@ -51,9 +51,15 @@ fn bytes_to_u16(it: &[u8]) -> u16 {
     assert_eq!(it.len(), 2);
     unsafe { transmute([it[0], it[1]]) }
 }
+fn u16_to_bytes(it: u16) -> [u8; 2] {
+    unsafe { transmute(it) }
+}
 fn bytes_to_f64(it: &[u8]) -> f64 {
     assert_eq!(it.len(), 8);
     unsafe { transmute([it[0], it[1], it[2], it[3], it[4], it[5], it[6], it[7]]) }
+}
+fn f64_to_bytes(it: f64) -> [u8; 8] {
+    unsafe { transmute(it) }
 }
 mod categorizer {
     use super::*;
@@ -370,6 +376,30 @@ mod file_start {
     struct FileStart([u8; 12], u8, u8, u8, u8);
     pub const FILE_START: [u8; 16] =
         unsafe { transmute(FileStart(*b"rrtkstrmbldr", MAJOR, MINOR, PATCH, PRE)) };
+}
+pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
+    //TODO: It would be cool figure out the size in advance based on the number of nodes.
+    let mut output = Vec::from(FILE_START);
+    output.push(tags_u8::NODE_SECTION_START);
+    for node in nodes {
+        output.push(tags_u8::NODE_START);
+        output.push(tags_u8::NODE_ID);
+        output.push(tags_u8::SKIP_2);
+        output.extend(u16_to_bytes(node.id));
+        output.push(tags_u8::COORDINATES);
+        output.push(tags_u8::SKIP_16);
+        output.extend(f64_to_bytes(node.x));
+        output.extend(f64_to_bytes(node.y));
+        output.push(tags_u8::NODE_INPUT_LIST_START);
+        for input in &node.inputs {
+            output.push(tags_u8::SKIP_2);
+            output.extend(u16_to_bytes(*input));
+        }
+        output.push(tags_u8::NODE_INPUT_LIST_END);
+        output.push(tags_u8::NODE_END);
+    }
+    output.push(tags_u8::NODE_SECTION_END);
+    output
 }
 pub use file_start::FILE_START;
 #[cfg(test)]
