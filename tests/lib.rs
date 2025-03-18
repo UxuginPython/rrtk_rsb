@@ -189,3 +189,21 @@ fn read_file_two_nodes() {
         ]
     );
 }
+#[test]
+fn build_and_read_file() {
+    let nodes = vec![
+        Node {
+            id: 5,
+            x: 0.0,
+            y: 0.0,
+            inputs: vec![],
+        },
+        Node {
+            id: 4,
+            x: 0.0,
+            y: 0.0,
+            inputs: vec![0],
+        },
+    ];
+    assert_eq!(nodes, read_file(&build_file(&nodes)).unwrap());
+}

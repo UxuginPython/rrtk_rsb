@@ -398,10 +398,12 @@ pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
         output.extend(f64_to_bytes(node.x));
         output.extend(f64_to_bytes(node.y));
         output.push(tags_u8::NODE_INPUT_LIST_START);
-        output.push(tags_u8::SKIP_U8);
-        output.push((node.inputs.len() * 2 - 1) as u8);
-        for input in &node.inputs {
-            output.extend(u16_to_bytes(*input));
+        if node.inputs.len() >= 1 {
+            output.push(tags_u8::SKIP_U8);
+            output.push((node.inputs.len() * 2 - 1) as u8);
+            for input in &node.inputs {
+                output.extend(u16_to_bytes(*input));
+            }
         }
         output.push(tags_u8::NODE_INPUT_LIST_END);
         output.push(tags_u8::NODE_END);
