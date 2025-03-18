@@ -18,7 +18,7 @@ fn read_file_version_error() {
 }
 #[test]
 fn read_file_no_node_section() {
-    let file: [u8; 16] = unsafe { core::mem::transmute((*b"rrtkstrmbldr", [0u8, 1, 0, 0])) };
+    let file: [u8; 16] = unsafe { core::mem::transmute((*b"rrtkstrmbldr", [1u8, 0, 0, 0])) };
     assert_eq!(read_file(&file.into()).unwrap(), vec![]);
 }
 #[test]
@@ -29,7 +29,7 @@ fn read_file_two_empty_node_sections() {
     let file: [u8; 20] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
-            [0u8, 1, 0, 0],
+            [1u8, 0, 0, 0],
             tags::NODE_SECTION_START,
             tags::NODE_SECTION_END,
             tags::NODE_SECTION_START,
@@ -46,7 +46,7 @@ fn read_file_empty() {
     let file: [u8; 18] = unsafe {
         core::mem::transmute((
             *b"rrtkstrmbldr",
-            [0u8, 1, 0, 0],
+            [1u8, 0, 0, 0],
             tags::NODE_SECTION_START,
             tags::NODE_SECTION_END,
         ))
@@ -77,7 +77,7 @@ fn read_file_one_node() {
     let file: [u8; 44] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
-            [0u8, 1, 0, 0],
+            [1u8, 0, 0, 0],
             tags::NODE_SECTION_START,
             tags::NODE_START,
             tags::NODE_ID,
@@ -141,7 +141,7 @@ fn read_file_two_nodes() {
     let file: [u8; 74] = unsafe {
         core::mem::transmute(TestFile(
             *b"rrtkstrmbldr",
-            [0u8, 1, 0, 0],
+            [1u8, 0, 0, 0],
             tags::NODE_SECTION_START,
             tags::NODE_START,
             tags::NODE_ID,
