@@ -377,18 +377,11 @@ mod file_start {
     pub const FILE_START: [u8; 16] =
         unsafe { transmute(FileStart(*b"rrtkstrmbldr", MAJOR, MINOR, PATCH, PRE)) };
 }
-pub fn build_file(nodes: &Vec<Node>) -> Vec<u8> {
+pub fn build_file<'a, I: Iterator<Item = &'a Node> + ExactSizeIterator>(nodes: I) -> Vec<u8> {
     //18 bytes for the magic numbers, version, and NODE_SECTION tags
-    //26 bytes for each node without inputs
-    //2 bytes per input
-    let mut to_allocate = 18 + 26 * nodes.len();
-    for node in nodes {
-        if node.inputs.len() >= 1 {
-            to_allocate += 2; //the SKIP_U8
-        }
-        to_allocate += 2 * node.inputs.len();
-    }
-    let mut output = Vec::with_capacity(to_allocate);
+    //26 bytes for each node ignoring inputs
+    //This is a lower limit for the file size.
+    let mut output = Vec::with_capacity(18 + 26 * nodes.len());
     output.extend(FILE_START);
     output.push(tags_u8::NODE_SECTION_START);
     for node in nodes {

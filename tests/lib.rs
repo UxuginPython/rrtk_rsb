@@ -205,5 +205,5 @@ fn build_and_read_file() {
             inputs: vec![0],
         },
     ];
-    assert_eq!(nodes, read_file(&build_file(&nodes)).unwrap());
+    assert_eq!(nodes, read_file(&build_file(nodes.iter())).unwrap());
 }
