@@ -40,6 +40,7 @@ mod tags_u8 {
     pub const NODE_INPUT_LIST_START: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_START) };
     pub const NODE_INPUT_LIST_END: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_END) };
 }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u16)]
 pub enum NodeType {
     ConstantGetter = 0,
@@ -76,17 +77,23 @@ pub enum NodeType {
     IntegralStream = 31,
 }
 impl TryFrom<u16> for NodeType {
-    type Error = ();
-    fn try_from(was: u16) -> Result<NodeType, ()> {
+    type Error = u16;
+    fn try_from(was: u16) -> Result<Self, u16> {
         if was <= 31 {
             return Ok(unsafe { transmute(was) });
         }
-        Err(())
+        Err(was)
+    }
+}
+pub fn node_type_result_to_u16(was: Result<NodeType, u16>) -> u16 {
+    match was {
+        Ok(node_type) => node_type as u16,
+        Err(error) => error,
     }
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
-    pub id: u16,
+    pub id: Result<NodeType, u16>,
     pub x: f64,
     pub y: f64,
     pub inputs: Vec<u16>,
@@ -360,7 +367,7 @@ fn parse_node(data: &[u8]) -> Result<Node, error::parse_file::ParseNode> {
     let (x, y) = find_and_parse_coordinates(data)?;
     let inputs = find_and_parse_inputs(data)?;
     Ok(Node {
-        id: id,
+        id: NodeType::try_from(id),
         x: x,
         y: y,
         inputs: inputs,
@@ -432,7 +439,7 @@ pub fn build_file<'a, I: Iterator<Item = &'a Node> + ExactSizeIterator>(nodes: I
         output.push(tags_u8::NODE_START);
         output.push(tags_u8::NODE_ID);
         output.push(tags_u8::SKIP_2);
-        output.extend(u16_to_bytes(node.id));
+        output.extend(u16_to_bytes(node_type_result_to_u16(node.id)));
         output.push(tags_u8::COORDINATES);
         output.push(tags_u8::SKIP_16);
         output.extend(f64_to_bytes(node.x));
