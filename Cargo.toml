@@ -2,7 +2,7 @@
 # Copyright 2025 UxuginPython
 [package]
 name = "rrtk_rsb"
-version = "1.0.0-alpha.1"
+version = "1.0.0-alpha.2"
 license = "BSD-3-Clause"
 edition = "2024"
 authors = ["UxuginPython <uxugin at uxugin dot com>"]
