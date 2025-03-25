@@ -440,6 +440,7 @@ mod file_start {
     pub const FILE_START: [u8; 16] =
         unsafe { transmute(FileStart(*b"rrtkstrmbldr", MAJOR, MINOR, PATCH, PRE)) };
 }
+pub use file_start::FILE_START;
 pub fn build_file<'a, I: Iterator<Item = &'a Node> + ExactSizeIterator>(nodes: I) -> Vec<u8> {
     //18 bytes for the magic numbers, version, and NODE_SECTION tags
     //26 bytes for each node ignoring inputs
@@ -470,7 +471,6 @@ pub fn build_file<'a, I: Iterator<Item = &'a Node> + ExactSizeIterator>(nodes: I
     output.push(tags_u8::NODE_SECTION_END);
     output
 }
-pub use file_start::FILE_START;
 #[cfg(test)]
 mod tests {
     use super::*;
