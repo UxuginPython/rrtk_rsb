@@ -315,7 +315,7 @@ fn find_and_parse_node_id(data: &[u8]) -> Result<u16, error::parse_file::parse_n
     if found_numbers.len() != 2 {
         return Err(error::parse_file::parse_node::ParseNodeID::IncorrectLength);
     }
-    Ok(unsafe { transmute([found_numbers[0], found_numbers[1]]) })
+    Ok(bytes_to_u16(&found_numbers))
 }
 fn find_and_parse_coordinates(
     data: &[u8],
@@ -502,8 +502,8 @@ mod tests {
             5,
             tags_u8::SKIP_U16,
             //Just a really hacky way of inserting a u16 into an array of u8s.
-            unsafe { transmute::<u16, [u8; 2]>(3u16)[0] },
-            unsafe { transmute::<u16, [u8; 2]>(3u16)[1] },
+            u16_to_bytes(3)[0],
+            u16_to_bytes(3)[1],
             100,
             2,
             101,
