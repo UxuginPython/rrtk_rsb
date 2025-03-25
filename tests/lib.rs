@@ -96,7 +96,7 @@ fn read_file_one_node() {
     assert_eq!(
         read_file(&file.into()).unwrap(),
         vec![Node {
-            id: 4,
+            id: Ok(NodeType::CommandPID),
             x: 0.0,
             y: 0.0,
             inputs: vec![],
@@ -175,13 +175,13 @@ fn read_file_two_nodes() {
         read_file(&file.into()).unwrap(),
         vec![
             Node {
-                id: 5,
+                id: Ok(NodeType::EWMAStream),
                 x: 0.0,
                 y: 0.0,
                 inputs: vec![],
             },
             Node {
-                id: 4,
+                id: Ok(NodeType::CommandPID),
                 x: 0.0,
                 y: 0.0,
                 inputs: vec![0],
@@ -193,13 +193,13 @@ fn read_file_two_nodes() {
 fn build_and_read_file() {
     let nodes = vec![
         Node {
-            id: 5,
+            id: Ok(NodeType::EWMAStream),
             x: 0.0,
             y: 0.0,
             inputs: vec![],
         },
         Node {
-            id: 4,
+            id: Ok(NodeType::CommandPID),
             x: 0.0,
             y: 0.0,
             inputs: vec![0],
