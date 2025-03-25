@@ -95,12 +95,7 @@ fn read_file_one_node() {
     };
     assert_eq!(
         read_file(&file.into()).unwrap(),
-        vec![Node {
-            id: Ok(NodeType::CommandPID),
-            x: 0.0,
-            y: 0.0,
-            inputs: vec![],
-        }]
+        vec![Node::new(Ok(NodeType::CommandPID), 0.0, 0.0, vec![])]
     );
 }
 #[test]
@@ -174,36 +169,16 @@ fn read_file_two_nodes() {
     assert_eq!(
         read_file(&file.into()).unwrap(),
         vec![
-            Node {
-                id: Ok(NodeType::EWMAStream),
-                x: 0.0,
-                y: 0.0,
-                inputs: vec![],
-            },
-            Node {
-                id: Ok(NodeType::CommandPID),
-                x: 0.0,
-                y: 0.0,
-                inputs: vec![0],
-            }
+            Node::new(Ok(NodeType::EWMAStream), 0.0, 0.0, vec![]),
+            Node::new(Ok(NodeType::CommandPID), 0.0, 0.0, vec![0]),
         ]
     );
 }
 #[test]
 fn build_and_read_file() {
     let nodes = vec![
-        Node {
-            id: Ok(NodeType::EWMAStream),
-            x: 0.0,
-            y: 0.0,
-            inputs: vec![],
-        },
-        Node {
-            id: Ok(NodeType::CommandPID),
-            x: 0.0,
-            y: 0.0,
-            inputs: vec![0],
-        },
+        Node::new(Ok(NodeType::EWMAStream), 0.0, 0.0, vec![]),
+        Node::new(Ok(NodeType::CommandPID), 0.0, 0.0, vec![0]),
     ];
     assert_eq!(nodes, read_file(&build_file(nodes.iter())).unwrap());
 }

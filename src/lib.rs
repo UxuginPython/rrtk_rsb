@@ -40,6 +40,7 @@ mod tags_u8 {
     pub const NODE_INPUT_LIST_START: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_START) };
     pub const NODE_INPUT_LIST_END: u8 = unsafe { transmute(tags::NODE_INPUT_LIST_END) };
 }
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u16)]
 pub enum NodeType {
@@ -91,12 +92,23 @@ pub fn node_type_result_to_u16(was: Result<NodeType, u16>) -> u16 {
         Err(error) => error,
     }
 }
+#[non_exhaustive]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Node {
     pub id: Result<NodeType, u16>,
     pub x: f64,
     pub y: f64,
     pub inputs: Vec<u16>,
+}
+impl Node {
+    pub fn new(id: Result<NodeType, u16>, x: f64, y: f64, inputs: Vec<u16>) -> Self {
+        Self {
+            id: id,
+            x: x,
+            y: y,
+            inputs: inputs,
+        }
+    }
 }
 fn bytes_to_u16(it: &[u8]) -> u16 {
     assert_eq!(it.len(), 2);
